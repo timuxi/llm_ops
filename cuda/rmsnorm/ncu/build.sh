@@ -1,0 +1,1 @@
+nvcc -std=c++14 test_rmsnorm.cpp ../kernel/rmsnorm_kernel.cu -o test_rmsnorm

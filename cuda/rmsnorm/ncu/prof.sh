@@ -1,0 +1,1 @@
+ncu --set full --target-processes all -o rmsnorm_recoder -f ./test_rmsnorm
