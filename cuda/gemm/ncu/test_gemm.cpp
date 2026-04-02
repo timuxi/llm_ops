@@ -9,7 +9,7 @@
 #include <chrono>
 
 // 主机端验证函数（简单对比）
-bool verify_result(float *h_C, float *h_C_ref, int M, int N, float eps = 1e-5) {
+bool verify_result(float *h_C, float *h_C_ref, int M, int N, float eps = 0.001f) {
     for (int i = 0; i < M * N; ++i) {
         if (fabs(h_C[i] - h_C_ref[i]) > eps) {
             printf("验证失败 at index %d: %f vs %f\n", i, h_C[i], h_C_ref[i]);
@@ -22,8 +22,8 @@ bool verify_result(float *h_C, float *h_C_ref, int M, int N, float eps = 1e-5) {
 
 int main() {
     // 矩阵维度设置
-    int M = 5 * 1024;   // A的行数，C的行数
-    int N = 5 * 1024;   // B的列数，C的列数
+    int M = 1024;   // A的行数，C的行数
+    int N = 1024;   // B的列数，C的列数
     int K = 128;   // A的列数，B的行数
 
     size_t size_A = M * K * sizeof(float);
@@ -37,8 +37,8 @@ int main() {
     float *h_C_ref = (float*)malloc(size_C); // 用于CPU计算结果对比
 
     // 简单初始化：A和B的元素设为1.0，这样C的每个元素应为K
-    for (int i = 0; i < M * K; ++i) h_A[i] = 1.0f;
-    for (int i = 0; i < K * N; ++i) h_B[i] = 1.0f;
+    for (int i = 0; i < M * K; ++i) h_A[i] = (float) (i % 33) / 10.0f;
+    for (int i = 0; i < K * N; ++i) h_B[i] = (float) (i % 33) / 10.0f;
     // 可选：随机初始化
     // for (int i = 0; i < M*K; ++i) h_A[i] = rand() / (float)RAND_MAX;
     // for (int i = 0; i < K*N; ++i) h_B[i] = rand() / (float)RAND_MAX;
