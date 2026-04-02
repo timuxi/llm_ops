@@ -22,8 +22,8 @@ bool verify_result(float *h_C, float *h_C_ref, int M, int N, float eps = 0.001f)
 
 int main() {
     // 矩阵维度设置
-    int M = 1024;   // A的行数，C的行数
-    int N = 1024;   // B的列数，C的列数
+    int M = 5 * 1024;   // A的行数，C的行数
+    int N = 5 * 1024;   // B的列数，C的列数
     int K = 128;   // A的列数，B的行数
 
     size_t size_A = M * K * sizeof(float);

@@ -22,8 +22,8 @@ __global__ void gemm_kernel(
     INPUT_TYPE* __restrict__ C,
     int M, int N, int K
 ) {
-    __shared__ float A_tile[TILE_SIZE][TILE_SIZE];
-    __shared__ float B_tile[TILE_SIZE][TILE_SIZE];
+    __shared__ float A_tile[2][TILE_SIZE][TILE_SIZE];
+    __shared__ float B_tile[2][TILE_SIZE][TILE_SIZE];
     int row = blockIdx.y * blockDim.y + threadIdx.y;
     int col = blockIdx.x * blockDim.x + threadIdx.x;
     if (row >= M || col >= N) {
@@ -32,15 +32,15 @@ __global__ void gemm_kernel(
     float sum = 0.0f;
     
     for (int k_idx = 0; k_idx < CeilDiv(K, TILE_SIZE); ++k_idx) {
-        A_tile[threadIdx.y][threadIdx.x] = A[row * K + k_idx * TILE_SIZE + threadIdx.x];
-        B_tile[threadIdx.y][threadIdx.x] = B[(k_idx * TILE_SIZE + threadIdx.y) * N + col];
+        int ping_pong_idx = k_idx % 2;
+        A_tile[ping_pong_idx][threadIdx.y][threadIdx.x] = A[row * K + k_idx * TILE_SIZE + threadIdx.x];
+        B_tile[ping_pong_idx][threadIdx.y][threadIdx.x] = B[(k_idx * TILE_SIZE + threadIdx.y) * N + col];
         __syncthreads();
-
+        
+        #pragma unroll
         for (int k = 0; k < TILE_SIZE; ++k) {
-            sum += A_tile[threadIdx.y][k] * B_tile[k][threadIdx.x];
+            sum += A_tile[ping_pong_idx][threadIdx.y][k] * B_tile[ping_pong_idx][k][threadIdx.x];
         }
-
-        __syncthreads();
     }
 
     // 将结果写回全局内存
