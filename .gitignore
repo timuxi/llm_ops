@@ -2,7 +2,4 @@ __pycache__/
 build/
 *.json
 *.so
-*.txt
 *.ncu-rep
-/*
-!/*.*

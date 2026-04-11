@@ -1,0 +1,1 @@
+ncu --set full --target-processes all -o gemm_recoder -f ./test_gemm
