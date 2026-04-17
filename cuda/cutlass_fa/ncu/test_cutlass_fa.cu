@@ -3,31 +3,32 @@
 #include <chrono>
 #include <cuda_runtime.h>
 #include <random>
+#include <cutlass/half.h>
 #include "cutlass_fa.h"
 
 // 辅助函数：初始化CUDA数组为随机值
-void initialize_random(float* data, int size) {
+void initialize_random(cutlass::half_t* data, int size) {
     std::random_device rd;
     std::mt19937 gen(rd());
     std::normal_distribution<float> dis(0.0f, 1.0f);
     
-    std::vector<float> host_data(size);
+    std::vector<__half> host_data(size);
     for (int i = 0; i < size; ++i) {
-        host_data[i] = dis(gen);
+        host_data[i] = __float2half(dis(gen));  // Convert float to half
     }
     
-    cudaMemcpy(data, host_data.data(), size * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(data, host_data.data(), size * sizeof(__half), cudaMemcpyHostToDevice);
 }
 
 // 辅助函数：比较两个CUDA数组
-bool compare_arrays(const float* a, const float* b, int size, float tolerance = 1e-3f) {
-    std::vector<float> host_a(size), host_b(size);
-    cudaMemcpy(host_a.data(), a, size * sizeof(float), cudaMemcpyDeviceToHost);
-    cudaMemcpy(host_b.data(), b, size * sizeof(float), cudaMemcpyDeviceToHost);
+bool compare_arrays(const cutlass::half_t* a, const cutlass::half_t* b, int size, float tolerance = 1e-3f) {
+    std::vector<__half> host_a(size), host_b(size);
+    cudaMemcpy(host_a.data(), a, size * sizeof(__half), cudaMemcpyDeviceToHost);
+    cudaMemcpy(host_b.data(), b, size * sizeof(__half), cudaMemcpyDeviceToHost);
     
     for (int i = 0; i < size; ++i) {
-        if (abs(host_a[i] - host_b[i]) > tolerance) {
-            std::cout << "Mismatch at index " << i << ": " << host_a[i] << " vs " << host_b[i] << std::endl;
+        if (abs(__half2float(host_a[i]) - __half2float(host_b[i])) > tolerance) {
+            std::cout << "Mismatch at index " << i << ": " << __half2float(host_a[i]) << " vs " << __half2float(host_b[i]) << std::endl;
             return false;
         }
     }
@@ -52,11 +53,12 @@ int main() {
     int lse_size = batch_size * num_heads * seq_len;
     
     // 分配设备内存
-    float *d_Q, *d_K, *d_V, *d_O, *d_softmax_lse;
-    cudaMalloc(&d_Q, total_elements * sizeof(float));
-    cudaMalloc(&d_K, total_elements * sizeof(float));
-    cudaMalloc(&d_V, total_elements * sizeof(float));
-    cudaMalloc(&d_O, total_elements * sizeof(float));
+    cutlass::half_t *d_Q, *d_K, *d_V, *d_O;
+    float *d_softmax_lse;
+    cudaMalloc(&d_Q, total_elements * sizeof(cutlass::half_t));
+    cudaMalloc(&d_K, total_elements * sizeof(cutlass::half_t));
+    cudaMalloc(&d_V, total_elements * sizeof(cutlass::half_t));
+    cudaMalloc(&d_O, total_elements * sizeof(cutlass::half_t));
     cudaMalloc(&d_softmax_lse, lse_size * sizeof(float));
     
     // 初始化数据
@@ -81,12 +83,12 @@ int main() {
     std::cout << "  Forward PASS in " << duration.count() << " μs" << std::endl;
     
     // 验证输出不为零（至少有些计算发生了）
-    std::vector<float> output_check(10);
-    cudaMemcpy(output_check.data(), d_O, 10 * sizeof(float), cudaMemcpyDeviceToHost);
+    std::vector<__half> output_check(10);
+    cudaMemcpy(output_check.data(), d_O, 10 * sizeof(__half), cudaMemcpyDeviceToHost);
     
     bool output_non_zero = false;
     for (int i = 0; i < 10; ++i) {
-        if (abs(output_check[i]) > 1e-6) {
+        if (abs(__half2float(output_check[i])) > 1e-6) {
             output_non_zero = true;
             break;
         }
@@ -104,11 +106,12 @@ int main() {
     int small_total = batch_size * small_seq_len * num_heads * head_dim;
     int small_lse = batch_size * num_heads * small_seq_len;
     
-    float *d_small_Q, *d_small_K, *d_small_V, *d_small_O, *d_small_softmax_lse;
-    cudaMalloc(&d_small_Q, small_total * sizeof(float));
-    cudaMalloc(&d_small_K, small_total * sizeof(float));
-    cudaMalloc(&d_small_V, small_total * sizeof(float));
-    cudaMalloc(&d_small_O, small_total * sizeof(float));
+    cutlass::half_t *d_small_Q, *d_small_K, *d_small_V, *d_small_O;
+    float *d_small_softmax_lse;
+    cudaMalloc(&d_small_Q, small_total * sizeof(cutlass::half_t));
+    cudaMalloc(&d_small_K, small_total * sizeof(cutlass::half_t));
+    cudaMalloc(&d_small_V, small_total * sizeof(cutlass::half_t));
+    cudaMalloc(&d_small_O, small_total * sizeof(cutlass::half_t));
     cudaMalloc(&d_small_softmax_lse, small_lse * sizeof(float));
     
     initialize_random(d_small_Q, small_total);
