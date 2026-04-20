@@ -7,3 +7,6 @@ cuda/cutlass_fa/ncu/benchmark_cutlass_fa
 cuda/cutlass_gemm/ncu/benchmark_cutlass_gemm
 cuda/cutlass_gemm/ncu/test_cutlass_gemm
 cuda/cutlass_fa/ncu/test_cutlass_fa
+cuda/triton_fa/benchmark/attention-benchmark-with-official-fa.csv
+cuda/triton_fa/benchmark/attention-benchmark-with-official-fa.png
+cuda/triton_fa/benchmark/results.html
